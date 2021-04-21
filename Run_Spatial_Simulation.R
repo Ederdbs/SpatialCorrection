@@ -2,19 +2,19 @@
 rm(list=ls())
 source('functions_simulation.R')
 ### Run parameters -------------------------------------------------------------
-AOIl <- 1:100
+AOIl <- 1:15
 Nsel <- 90 #selection intensity = 10%
-r <- 33 ## Ranges 33
-p <- 30 ## Plots 30
-f <- 0.10
-Nrep <- 1
-Nchecks <- 3
-NF1 <- 30
-NF2 <- 30
-mgen <- 0
-Nsnp <- 20000
+r <- 10 ## Ranges 33 in field
+p <- 10 ## Plots 30 in field
+f <- 0.10 # frequency of checks 
+Nrep <- 1 # number of replications 
+Nchecks <- 3 # number of checks
+NF1 <- 30 # number of families
+NF2 <- 10 # number of individual by familie
+mgen <- 0 # mean of trait
+Nsnp <- 2000 # number of SNP in genotype 
 AOIlen <- length(AOIl)
-Spatial_per <- rep(c(0.1,0.25,0.5,0.75,0.90),len=max(AOIl))
+Spatial_per <- rep(c(0.1,0.25,0.5,0.75,0.90),len=max(AOIl)) # Spatial percentage of total variance
 h2_s <- runif(length(AOIl),0.01,0.99)
 #Spatial_simu(1,r=r,p=p,f=f,NF1=NF1,NF2=NF2,Nsnp=Nsnp)
 ### Running code ---------------------------------------------------------------
@@ -43,7 +43,6 @@ if(os == 'Windows'){
 doParallel::registerDoParallel(cl=cl)
 lP <- foreach(i = AOIl,
               .verbose=TRUE,
-              #.export = ls(globalenv()),
               .inorder=FALSE,
               .packages = x) %dopar% {
                 tryCatch(Spatial_simu(i,r=r,p=p,f=f,NF1=NF1,NF2=NF2,Nsnp=Nsnp),error=function(e){return(NA)})
@@ -56,6 +55,7 @@ jobID <- Sys.getenv("LSB_JOBID")
 write.csv(results,paste0(jobID,"_results.csv"),row.names = F)
 
 
+### Some results analysis ------------------------------------------------------
 pdf(paste0(jobID,'_Main_Results.pdf'),w=20,h=17)
 limitRange <- function(data, mapping, ...) { 
   ggplot(data = data, mapping = mapping, ...) + 
@@ -82,7 +82,6 @@ print(Hg)
 
 ## Error variance
 MErro <- max(unlist(c(results[,c(grep("^sigma2_e",colnames(results)),grep("_erro$",colnames(results)))])))
-
 He <- ggpairs(results[,c(grep("^sigma2_e",colnames(results)),grep("_erro$",colnames(results)))],mapping=ggplot2::aes(colour = as.factor(results$Spatial_per)),
               upper = list(continuous = wrap("cor", method= "spearman")),
               lower=list(continuous=function(data, mapping, ...) { 
@@ -131,7 +130,6 @@ print(Hl)
 
 ### GV correlation
 resultsM <- melt(results[,c(grep("LocationID|Spatial_per|^Corr_gv_BLUP",colnames(results)))],id=c('LocationID','Spatial_per'))
-
 BPc <- ggplot(resultsM,aes(y=value,x=variable,color=variable))+
   geom_boxplot()+
   facet_wrap(~Spatial_per)+
